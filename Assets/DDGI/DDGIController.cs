@@ -150,6 +150,12 @@ public class DDGIController : MonoBehaviour
 				probeOffsetsTexture = new ComputeBuffer(v.w*v.h,GetStride<Vector4>(), ComputeBufferType.Structured);
 				probeOffsetsImage = new ComputeBuffer(v.w*v.h,GetStride<Vector4>(), ComputeBufferType.Structured);
 
+				// Freshly created ComputeBuffers hold undefined data; the shaders read
+				// probeOffsetsTexture before anything ever writes it.
+				Vector4[] zeroOffsets = new Vector4[v.w*v.h];
+				probeOffsetsTexture.SetData(zeroOffsets);
+				probeOffsetsImage.SetData(zeroOffsets);
+
 				UpdateProbesBorders(visibilityTexture, ddgiVolume.visibilityProbeSideLength, ddgiVolume.probeCounts, 0, DebugOutputMode.Visibility); //set ones
 				UpdateProbesBorders(irradianceTexture, ddgiVolume.irradianceProbeSideLength, ddgiVolume.probeCounts, 0, DebugOutputMode.Irradiance); //set ones
 			}
@@ -190,7 +196,7 @@ public class DDGIController : MonoBehaviour
 		else
 			computeBorders.DisableKeyword("DEBUG_MODE");
 
-		computeBorders.Dispatch(kernelIndex, Mathf.CeilToInt(threadGroupsX/8), Mathf.CeilToInt(threadGroupsY/8), 1);
+		computeBorders.Dispatch(kernelIndex, Mathf.CeilToInt(threadGroupsX/8f), Mathf.CeilToInt(threadGroupsY/8f), 1);
 	}
 
 	(int,int) GetBufferDimensions(int probeSideLength, Vector3Int probeCounts)
@@ -387,7 +393,7 @@ public class DDGIController : MonoBehaviour
 			computeIrradiance.DisableKeyword("DEBUG_MODE");
 
 		// Dispatch your compute shader
-		computeIrradiance.Dispatch(0, Mathf.CeilToInt(bufferSize.w/8), Mathf.CeilToInt(bufferSize.h/8), 1);
+		computeIrradiance.Dispatch(0, Mathf.CeilToInt(bufferSize.w/8f), Mathf.CeilToInt(bufferSize.h/8f), 1);
 
         RenderTexture.ReleaseTemporary(readOnlyIrradiance);
         RenderTexture.ReleaseTemporary(readOnlyVisibility);

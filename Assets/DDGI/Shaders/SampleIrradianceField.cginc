@@ -14,7 +14,6 @@
 int SHOW_CHEBYSHEV_WEIGHTS;
 int DEBUG_VISUALIZATION_MODE;
 
-int FIRST_FRAME;
 int OFFSET_BITS_PER_CHANNEL;
 
 /**
@@ -110,7 +109,11 @@ float4 sampleOneDDGIVolume
 
 		// Because of the phase offset applied for camera locked volumes,
 		// we need to add the computed offset modulo the probecounts.
-        int3 probeGridCoord = int3(fmod(anchorGridCoord + offset, ddgiVolume.probeCounts));
+		// For a static volume, wrapping would fetch a probe from the opposite
+		// side of the grid, so clamp to the grid boundary instead.
+        int3 probeGridCoord = (ddgiVolume.cameraLocked == 1)
+            ? int3(fmod(anchorGridCoord + offset, ddgiVolume.probeCounts))
+            : clamp(anchorGridCoord + offset, int3(0, 0, 0), int3(ddgiVolume.probeCounts) - int3(1, 1, 1));
 
         // Make cosine falloff in tangent plane with respect to the angle from the surface to the probe so that we never
         // test a probe that is *behind* the surface.
@@ -138,7 +141,7 @@ float4 sampleOneDDGIVolume
             // The small offset at the end reduces the "going to zero" impact
             // where this is really close to exactly opposite
             if (SHOW_CHEBYSHEV_WEIGHTS == 0)
-                weight *= sqrt((dot(trueDirectionToProbe, sampleDirection) + 1.0) * 0.5) + 0.2;
+                weight *= square((dot(trueDirectionToProbe, sampleDirection) + 1.0) * 0.5) + 0.2;
         }
         
         // Bias the position at which visibility is computed; this avoids performing a shadow 
@@ -157,7 +160,7 @@ float4 sampleOneDDGIVolume
             float2 temp = visibilityTexture.SampleLevel(sampler_visibilityTexture, texCoord * ddgiVolume.invVisibilityTextureSize, 0).xy;
 
             float meanDistanceToOccluder = temp.x;
-            float variance = abs(sqrt(temp.x) - temp.y);
+            float variance = abs(square(temp.x) - temp.y);
 
             variance += ddgiVolume.debugVarianceBias;
             meanDistanceToOccluder += ddgiVolume.debugMeanBias;
@@ -168,7 +171,7 @@ float4 sampleOneDDGIVolume
 
                 // http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
                 // Need the max in the denominator because biasing can cause a negative displacement
-                chebyshevWeight = variance / (variance + sqrt(distanceToBiasedPoint - meanDistanceToOccluder));
+                chebyshevWeight = variance / (variance + square(max(distanceToBiasedPoint - meanDistanceToOccluder, 0.0)));
                 
                 // Increase contrast in the weight
                 chebyshevWeight = max(pow(chebyshevWeight,3) - ddgiVolume.debugChebyshevBias, 0.0) * ddgiVolume.debugChebyshevNormalize;
@@ -190,7 +193,7 @@ float4 sampleOneDDGIVolume
             // crush tiny weights but keep the curve continuous.
             const float crushThreshold = 0.2;
             if (weight < crushThreshold) {
-                weight *= sqrt(weight) * (1.0 / sqrt(crushThreshold)); 
+                weight *= weight * weight * (1.0 / square(crushThreshold));
             }
         }
       
@@ -204,7 +207,7 @@ float4 sampleOneDDGIVolume
 
         if (debugDisableNonlinear) {
             // Undo the gamma encoding for debugging
-            probeIrradiance = sqrt(probeIrradiance);
+            probeIrradiance = square(probeIrradiance);
         }
 
         if (DEBUG_VISUALIZATION_MODE == 1 || SHOW_CHEBYSHEV_WEIGHTS == 1)
@@ -220,8 +223,8 @@ float4 sampleOneDDGIVolume
     irradiance.xyz *= 1.0 / irradiance.a;
 
     // Go back to linear irradiance
-    if (! debugDisableNonlinear) {   
-        irradiance.xyz = sqrt(irradiance.xyz);
+    if (! debugDisableNonlinear) {
+        irradiance.xyz = square(irradiance.xyz);
     }
 
     // Was factored out of probes

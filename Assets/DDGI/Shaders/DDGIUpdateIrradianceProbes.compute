@@ -24,11 +24,6 @@ RWStructuredBuffer<float4> rayOrigins;
 RWStructuredBuffer<float4> rayDirections;
 uint2 surfelsTextureSize;
 
-float square(float f)
-{
-    return f * f;
-}
-
 uint2 GetBufferDimensions(int probeSideLength, uint3 probeCounts)
 {
     int sizeW = (probeSideLength + 2) * probeCounts.x * probeCounts.y;
@@ -123,10 +118,12 @@ void main(uint3 id : SV_DispatchThreadID)
     result.xyz = pow(abs(result.xyz), float3(1,1,1) * DDGIVolumes[0].invIrradianceGamma);
     #endif
 
+    // Fetch the exact texel: a bilinear SampleLevel at texelPos * invSize lands on the
+    // texel *corner* and averages 4 texels, smearing history across probe tiles every frame.
 #ifdef OUTPUT_IRRADIANCE
-    float4 old = irradianceTexture.SampleLevel(sampler_irradianceTexture, texelPos * DDGIVolumes[0].invIrradianceTextureSize, 0);
+    float4 old = irradianceTexture.Load(int3(texelPos, 0));
 #else
-    float4 old = visibilityTexture.SampleLevel(sampler_visibilityTexture, texelPos * DDGIVolumes[0].invVisibilityTextureSize, 0);
+    float4 old = visibilityTexture.Load(int3(texelPos, 0));
 #endif
     
     float2 debugOctCoord = normalizedOctCoord(relativeTexelCoord, PROBE_SIDE_LENGTH);

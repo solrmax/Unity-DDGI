@@ -124,12 +124,11 @@ float3 gridCoordToPosition(in DDGIVolume ddgiVolume, int3 c) {
     float probeXY = ddgiVolume.probeCounts.x * ddgiVolume.probeCounts.y;
     int2 C = probeXY != 0 ? int2(fmod(idx, probeXY), idx / probeXY) : int2(0, 0);
 
-    float3 offset =
-#if FIRST_FRAME == 1
-        int3(0, 0, 0);
-#else
-        readProbeOffset(ddgiVolume, C).xyz; // readProbeOffset multiplies by probe step.
-#endif
+    // FIRST_FRAME is a uniform int, not a #define: it must be tested at runtime,
+    // otherwise the preprocessor always evaluates it to 0.
+    float3 offset = (FIRST_FRAME == 1)
+        ? float3(0, 0, 0)
+        : readProbeOffset(ddgiVolume, C).xyz; // readProbeOffset multiplies by probe step.
     return gridCoordToPositionNoOffset(ddgiVolume, c) + offset;
 }
 

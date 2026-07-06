@@ -51,8 +51,9 @@ void main(uint3 id : SV_DispatchThreadID)
     float4 allLight = float4(0,0,0,0);
     if (CalculateRayCollision(ray, info))
     {
-        float3 viewVec = normalize(_WorldSpaceCameraPos - info.hitPoint);
-        allLight = ComputeShadingAt(info, viewVec, sunDirection, sunColor, 1000.0, false, debugDisableBackface, debugDisableChebyshev);
+        // The receiver of this shading is the probe, not the camera
+        float3 viewVec = normalize(ray.origin - info.hitPoint);
+        allLight = ComputeShadingAt(info, viewVec, sunDirection, sunColor, 1000.0, true, debugDisableBackface, debugDisableChebyshev);
     }
     
     Write(rayDirections, texelPos, surfelSize, float4(ray.direction, info.dst));

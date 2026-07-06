@@ -31,6 +31,8 @@ struct DDGIVolume
     float maxDistance;
 };
 
+int FIRST_FRAME;
+
 StructuredBuffer<DDGIVolume> DDGIVolumes;
 
 Texture2D<float4> irradianceTexture;

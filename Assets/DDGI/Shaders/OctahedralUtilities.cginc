@@ -34,7 +34,9 @@ float3 octDecode(float2 o) {
 }
 
 
-// Compute normalized oct coord, mapping top left of top left pixel to (-1,-1)
-float2 normalizedOctCoord(uint2 fragCoord, int PROBE_SIDE_LENGTH) {
-    return (fragCoord / (float) (PROBE_SIDE_LENGTH - 1)) * 2.0 - 1.0;
+// Compute the normalized oct coord at the center of texel fragCoord (on [0, side-1]).
+// Must stay consistent with probeTextureCoordFromDirection, which maps the oct square
+// onto [interiorStart, interiorStart + side] in texels, and with the border copies.
+float2 normalizedOctCoord(int2 fragCoord, int PROBE_SIDE_LENGTH) {
+    return (float2(fragCoord) + 0.5) * (2.0 / float(PROBE_SIDE_LENGTH)) - 1.0;
 }
