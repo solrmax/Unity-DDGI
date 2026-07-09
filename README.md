@@ -1,7 +1,7 @@
 # Unity-DDGI
 
 Unity implementation of Dynamic Diffuse Global Illumination (DDGI).
-
+![screenshot](Images/Title.png)
 ## Tech
 
 ```hlsl
@@ -19,6 +19,8 @@ Technique: DDGI probe-based GI
 - Rasterized and raytraced rendering paths
 - Bilinear interpolation for probe sampling
 
+![other screenshot](Images/Probes.png)
+
 ## Implementation
 
 Multiple compute shaders handle different stages:
@@ -29,7 +31,8 @@ Multiple compute shaders handle different stages:
 
 ## Status
 
-Development at a stall, significant light leaks remain to fix
+> [!WARNING]
+> Development at a stall, significant light leaks remain to fix
 
 ## References
 
